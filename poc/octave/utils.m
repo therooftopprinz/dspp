@@ -141,11 +141,15 @@ function scs = getSubcarrierSymbols(scIdx, numOfSc, ofdmSymbols)
 endfunction
 
 function acor = autocorr(signal, corsize)
-  acor = [zeros(1, corsize)];
-  for i=corsize:1:length(signal)-corsize
+  acor = [];
+  tail = [];
+  for i=corsize:corsize:length(signal)-corsize
     s1 = signal(i-corsize+1:i);
     s2 = signal(i+1:i+corsize);
-    acor = [acor sum(s1.*conj(s2))];
+    corr = xcorr(s1, s2);
+    head = corr(1:corsize);
+    acor = [acor head.+[tail zeros(1, length(head)-length(tail))]];
+    tail = corr(corsize+1:end);
   endfor
   acor = [acor zeros(1, corsize)];
 endfunction
@@ -153,4 +157,9 @@ endfunction
 function samples = tone(sample_rate, frequency, time)
     num_samples = sample_rate*time;
     samples = e.^(j*2*pi*(frequency/sample_rate)*[0:1:num_samples-1]);
+endfunction
+
+function samples = zadoffChuSeq(u,N)
+    n = 0:1:N;
+    samples = e.^((-j*pi*u.*n).*(n+mod(N,2))/N);
 endfunction

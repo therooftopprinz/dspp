@@ -19,8 +19,17 @@ K_  = sym_tab_qam(3,3);
 
 O_ = 0;
 
+% qam16 = [];
+% for ii=1:1:4
+%    for jj=1:1:4
+%       x = 1+(jj-1)*2;
+%       y = 1+(ii-1)*2;
+%       qam16 = [qam16 x+y*1j];
+% endfor
+
 clear -g SYMS;
 global SYMS = [F_ K_ G_ J_]; % qpsk
+% global SYMS = qam16;
 SYMS
 Z_ = -1;
 X_ = 1;
@@ -110,10 +119,10 @@ printf("tx_baseband_mean mean=%d\n", tx_baseband_mean);
 printf("tx_baseband_mean papr=%d\n", log(tx_baseband_max/tx_baseband_mean));
 
 % Channel Condition
-channel_response = [1 0.1 -0.1 0.05 0 0 0 0]; % expected sync at 478-482 (CP=4)
+channel_response = [1 -0.3 0.2 0 0 0 0.2 -0.3]; % expected sync at 478-482 (CP=4)
 tx_baseband = conv(channel_response, tx_baseband);
 
-tx_baseband_acorr = autocorr(tx_baseband,ACOR_SIZE);
+tx_baseband_acorr = autocorr(tx_baseband,40);
 
 subplot(2,2,1);
 plotComplex(tx_baseband);
