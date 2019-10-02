@@ -1,0 +1,6 @@
+[submodule "BFC"]
+	path = BFC
+	url = https://github.com/therooftopprinz/BFC.git
+[submodule "Logless"]
+	path = Logless
+	url = https://github.com/therooftopprinz/Logless.git
