@@ -100,7 +100,7 @@ gtest.add_src_files(['gmock-gtest-all.cc'])
 gtest.add_include_paths(['gtest'])
 gtest.target_archive('gtest.a')
 
-COMMON_TARGET_INLCUDES = ['src/', 'BFC/src']
+COMMON_TARGET_INLCUDES = ['src/', 'BFC/include', 'BFC/src']
 
 src = Build()
 src.set_cxxflags(CXXFLAGS)
@@ -126,7 +126,7 @@ visualizer.set_src_dir('src/')
 visualizer.add_src_files(["main.cpp"])
 visualizer.add_dependencies(['src.a'])
 # visualizer.add_external_dependencies(['Logless/build/logless.a',])
-visualizer.set_linkflags("-lpthread -lsfml-graphics -lsfml-window -lsfml-system")
+visualizer.set_linkflags("-lpthread -lglfw -lGL")
 visualizer.target_executable('visualizer')
 
 with open('Makefile','w+') as mf:
