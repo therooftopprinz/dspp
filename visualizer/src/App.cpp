@@ -8,28 +8,20 @@
 #include <App.hpp>
 
 App::App()
+    : mCmdPlotTime(mTaskMan, mPipeMan)
 {
     if (!glfwInit())
     {
         throw std::runtime_error("glfwInit failed!");
     }
 
-    mCmdMan.addCommand("plot_time", [this](bfc::ArgsMap&& pArgs) -> std::string {return cmdPlotTime(std::move(pArgs));});
-    mCmdMan.addCommand("exit",      [this](bfc::ArgsMap&& pArgs) -> std::string {return cmdExit    (std::move(pArgs));});
+    mCmdMan.addCommand("plot_time", [this](bfc::ArgsMap&& pArgs) -> std::string {return mCmdPlotTime.execute(std::move(pArgs));});
+    mCmdMan.addCommand("exit",      [this](bfc::ArgsMap&& pArgs) -> std::string {return cmdExit(std::move(pArgs));});
 }
 
 App::~App()
 {
     glfwTerminate();
-}
-
-std::string App::cmdPlotTime(bfc::ArgsMap&& pArgs)
-{
-    using namespace std::string_literals;
-    mPlotTimeWindows.emplace_back();
-    auto& tpw = mPlotTimeWindows.back();
-    mTasks.addTask(TaskFn([&tpw](){tpw.schedule();}));
-    return "Time plot created!";
 }
 
 std::string App::cmdExit(bfc::ArgsMap&& pArgs)
@@ -53,11 +45,12 @@ void App::cliLoop()
 int App::run()
 {
     mAppRunning = true;
+    mCliLoopRunning = true;
     std::thread cliLoopThread([this](){cliLoop();});
 
     while (mAppRunning)
     {
-        mTasks.scheduleAll();
+        mTaskMan.scheduleAll();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
