@@ -8,15 +8,17 @@
 #include <App.hpp>
 
 App::App()
-    : mCmdPlotTime(mTaskMan, mPipeMan)
+    : mCmdPlotTime  (mTaskMan, mPipeMan)
+    , mCmdTestSignal(mPipeMan)
 {
     if (!glfwInit())
     {
         throw std::runtime_error("glfwInit failed!");
     }
 
-    mCmdMan.addCommand("plot_time", [this](bfc::ArgsMap&& pArgs) -> std::string {return mCmdPlotTime.execute(std::move(pArgs));});
-    mCmdMan.addCommand("exit",      [this](bfc::ArgsMap&& pArgs) -> std::string {return cmdExit(std::move(pArgs));});
+    mCmdMan.addCommand("exit",        [this](bfc::ArgsMap&& pArgs) -> std::string {return cmdExit(std::move(pArgs));});
+    mCmdMan.addCommand("plot_time",   [this](bfc::ArgsMap&& pArgs) -> std::string {return mCmdPlotTime.execute(std::move(pArgs));});
+    mCmdMan.addCommand("test_signal", [this](bfc::ArgsMap&& pArgs) -> std::string {return mCmdTestSignal.execute(std::move(pArgs));});
 }
 
 App::~App()

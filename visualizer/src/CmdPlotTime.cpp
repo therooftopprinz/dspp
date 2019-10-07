@@ -35,5 +35,4 @@ std::string CmdPlotTime::execute(bfc::ArgsMap&& pArgs)
     auto& tpw = winEmp.first->second;
     mTaskMan.addTask(bfc::LightFunctionObject<void()>([&tpw](){tpw.schedule();}));
     return "Time plot created!";
-
 }

@@ -13,8 +13,13 @@ public:
     void write(bfc::Buffer pData)
     {
         std::unique_lock<std::mutex> lg(mDatasLock);
+        while (mBufferMax < mDatas.size())
+        {
+            mDatas.pop_front();
+        }
         mDatas.emplace_back(std::move(pData));
     }
+
     bfc::Buffer read()
     {
         std::unique_lock<std::mutex> lg(mDatasLock);
@@ -22,12 +27,20 @@ public:
         if (mDatas.size())
         {
             rv = std::move(mDatas.front());
+            mDatas.pop_front();
             return rv;
         }
         return rv;
     }
+
+    void setBufferMax(uint32_t pBufferMax)
+    {
+        std::unique_lock<std::mutex> lg(mDatasLock);
+        mBufferMax = pBufferMax;
+    }
 private:
     std::deque<bfc::Buffer> mDatas;
+    uint32_t mBufferMax=0;
     std::mutex mDatasLock;
 };
 

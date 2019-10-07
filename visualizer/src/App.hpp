@@ -9,8 +9,9 @@
 #include <BFC/CommandManager.hpp>
 #include <BFC/FixedFunctionObject.hpp>
 #include <PipeManager.hpp>
-#include <CmdPlotTime.hpp>
 #include <TaskManager.hpp>
+#include <CmdPlotTime.hpp>
+#include <CmdTestSignal.hpp>
 
 class App
 {
@@ -31,6 +32,7 @@ private:
     PipeManager mPipeMan;
 
     CmdPlotTime mCmdPlotTime;
+    CmdTestSignal mCmdTestSignal;
 };
 
 #endif // __APP_HPP__
