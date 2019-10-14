@@ -100,7 +100,7 @@ gtest.add_src_files(['gmock-gtest-all.cc'])
 gtest.add_include_paths(['gtest'])
 gtest.target_archive('gtest.a')
 
-COMMON_TARGET_INLCUDES = ['src/', 'BFC/include', 'BFC/src']
+COMMON_TARGET_INLCUDES = ['src/', 'BFC/include', 'BFC/src', 'dsp/include']
 
 src = Build()
 src.set_cxxflags(CXXFLAGS)

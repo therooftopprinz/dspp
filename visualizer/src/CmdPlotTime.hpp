@@ -2,6 +2,7 @@
 #define __CMDPLOTTIME_HPP__
 
 #include <string>
+#include <memory>
 
 #include <GLFW/glfw3.h>
 
@@ -19,7 +20,7 @@ public:
 private:
     TaskManager<bfc::LightFunctionObject<void()>>& mTaskMan;
     PipeManager& mPipeMan;
-    std::map<uint32_t, WindowPlotTime> mWindows;
+    std::map<uint32_t, std::unique_ptr<WindowPlotTime>> mWindows;
     uint32_t mIdGen = 0;
 };
 

@@ -9,30 +9,18 @@ std::string CmdPlotTime::execute(bfc::ArgsMap&& pArgs)
 {
     using namespace std::string_literals;
     auto id = pArgs.argAs<int>("id");
-    if (id) // update
+    if (id)
     {
         auto foundIt = mWindows.find(*id);
         if (mWindows.end()==foundIt)
         {
             return "Time plot with id="s + std::to_string(*id) + "is not found!";
         }
-        return "Time plot updated!";
+        auto& tpw = foundIt->second;
+        return tpw->execute(std::move(pArgs));
     }
-
-    auto pipeInId = pArgs.argAs<int>("pipe_in");
-    if (!pipeInId)
-    {
-        return "Input pipe (pipe_in) not specified!";
-    }
-
-    auto pipe = mPipeMan.getPipe(*pipeInId);
-    if (!pipe)
-    {
-        return "Input pipe specified not found!";
-    }
-
-    auto winEmp = mWindows.emplace(mIdGen++, WindowPlotTime(*pipe));
+    auto winEmp = mWindows.emplace(mIdGen++, std::make_unique<WindowPlotTime>(mPipeMan));
     auto& tpw = winEmp.first->second;
-    mTaskMan.addTask(bfc::LightFunctionObject<void()>([&tpw](){tpw.schedule();}));
-    return "Time plot created!";
+    mTaskMan.addTask(bfc::LightFunctionObject<void()>([&tpw](){tpw->schedule();}));
+    return "id="s + std::to_string(*id) + "\n" + tpw->execute(std::move(pArgs));
 }

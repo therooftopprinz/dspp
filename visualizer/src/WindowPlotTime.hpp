@@ -2,6 +2,7 @@
 #define __WINDOWPLOTTIME_HPP
 
 #include <string>
+#include <thread>
 
 #include <GLFW/glfw3.h>
 
@@ -10,8 +11,8 @@
 class WindowPlotTime
 {
 public:
-WindowPlotTime(Pipe& pInputPipe)
-    : mInputPipe(pInputPipe)
+WindowPlotTime(PipeManager& pPipeManager)
+    : mPipeManager(pPipeManager)
 {
     mWindow = glfwCreateWindow(640, 480, "Time Plot", NULL, NULL);
     std::cout << "WindowPlotTime: window=" << mWindow << "\n";
@@ -23,13 +24,7 @@ WindowPlotTime(Pipe& pInputPipe)
 
 WindowPlotTime(const WindowPlotTime&) = delete;
 
-WindowPlotTime(WindowPlotTime&& pOther)
-    : mInputPipe (pOther.mInputPipe)
-{
-    reset();
-    mWindow = pOther.mWindow;
-    pOther.mWindow = nullptr;
-}
+WindowPlotTime(WindowPlotTime&& pOther) = delete;
 
 ~WindowPlotTime()
 {
@@ -45,11 +40,47 @@ void schedule()
 
     glfwMakeContextCurrent(mWindow);
     glfwPollEvents();
-    glClear(GL_COLOR_BUFFER_BIT);
+
+    glViewport( 0, 0, 640, 480 );
+    glMatrixMode( GL_PROJECTION );
+    glLoadIdentity();
+
+    glClearColor(0,0,0,0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPointSize(10);
+    glLineWidth(1.5); 
+    glBegin(GL_LINES);
+    {
+        glColor3f(1.0, 0.0, 0.0);
+        glVertex2f(-1,-1);
+        glVertex2f(1,1);
+
+        glColor3f(0.0, 1.0, 0.0);
+        glVertex2f(1,1);
+        glVertex2f(-1,1);
+
+        glColor3f(0.0, 0.0, 1.0);
+        glVertex2f(-1,1);
+        glVertex2f(1,-1);
+    }
+    glEnd();
+
     glfwSwapBuffers(mWindow);
 }
 
+std::string execute(bfc::ArgsMap&& pArgs)
+{
+    using namespace std::string_literals;
+    auto channel = pArgs.argAs<int>("channel");
+    if (channel)
+    {
+        channel = 0;
+    }
+    return "";
+}
+
 private:
+
     void reset()
     {
         if (mWindow)
@@ -58,8 +89,10 @@ private:
             mWindow = nullptr;
         }
     }
-    Pipe& mInputPipe;
+    PipeManager& mPipeManager;
     GLFWwindow* mWindow = nullptr;
+    std::mutex mPlotChannelMutex;
+    std::vector<Pipe*> mPlotChannel;
 };
 
 #endif // __WINDOWPLOTTIME_HPP

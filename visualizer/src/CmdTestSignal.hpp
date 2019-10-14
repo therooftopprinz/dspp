@@ -4,7 +4,9 @@
 #include <thread>
 #include <chrono>
 #include <memory>
+#include <cmath>
 
+#include <dsp/TimedSignal.hpp>
 #include <BFC/CommandManager.hpp>
 #include <PipeManager.hpp>
 #include <TaskManager.hpp>
@@ -19,6 +21,7 @@ public:
         , mSampleRate(pSampleRate)
         , mFrequency(pFrequency)
         , mPhase(pPhase)
+        , mGenThreadRunning(false)
         , mGenThread([this](){run();})
     {
         mPipe.setBufferMax(4);
@@ -39,12 +42,24 @@ private:
         auto now = std::chrono::high_resolution_clock::now();
         return std::chrono::duration_cast<std::chrono::microseconds>(now-mTimeBase).count();
     }
+
     void run()
     {
         mGenThreadRunning = true;
         while (mGenThreadRunning)
         {
-            
+            auto buffer = mPipe.allocate(dsp::TimedRealSignal::allocationSize(mBlockSize));
+            dsp::TimedRealSignal signal(buffer.data(), dsp::TimedRealSignal::allocationSize((mBlockSize)));
+            signal.time() = time()/double(1000*1000);
+            const auto baseTime = signal.time();
+
+            for (size_t i=0; i<mBlockSize; i++)
+            {
+                double t = baseTime + double(i)/mSampleRate;
+                signal.emplace_back(std::sin(2*pi*mFrequency*t+mPhase));
+            }
+            mPipe.write(std::move(buffer));
+            std::this_thread::sleep_for(std::chrono::microseconds((1000*1000*mBlockSize)/mSampleRate));
         }
     }
 
@@ -53,7 +68,7 @@ private:
     uint32_t mSampleRate;
     double mFrequency;
     double mPhase;
-    double mTime;
+    constexpr static double pi =  3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170;
     std::atomic_bool mGenThreadRunning;
     std::thread mGenThread;
     decltype(std::chrono::high_resolution_clock::now()) mTimeBase = std::chrono::high_resolution_clock::now();
@@ -85,7 +100,7 @@ public:
             }
             return "Test signal updated!";
         }
-        
+
         if (!blockSize)
         {
             blockSize = 20;

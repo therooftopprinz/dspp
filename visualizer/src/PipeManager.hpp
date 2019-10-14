@@ -5,7 +5,7 @@
 #include <deque>
 #include <mutex>
 
-#include <BFC/Buffer.hpp>
+#include <BFC/MemoryPool.hpp>
 
 class Pipe
 {
@@ -38,10 +38,17 @@ public:
         std::unique_lock<std::mutex> lg(mDatasLock);
         mBufferMax = pBufferMax;
     }
+
+    bfc::Buffer allocate(std::size_t pSize)
+    {
+        return mMemPool.allocate(pSize);
+    }
+
 private:
-    std::deque<bfc::Buffer> mDatas;
     uint32_t mBufferMax=0;
     std::mutex mDatasLock;
+    bfc::Log2MemoryPool mMemPool;
+    std::deque<bfc::Buffer> mDatas;
 };
 
 class PipeManager
@@ -53,6 +60,7 @@ public:
         mPipes.emplace(mPipesIdGen, std::make_unique<Pipe>());
         return mPipesIdGen++;
     }
+
     Pipe* getPipe(uint32_t pId)
     {
         auto foundIt = mPipes.find(pId);
@@ -62,6 +70,7 @@ public:
         }
         return nullptr;
     }
+
 private:
     std::map<uint32_t, std::unique_ptr<Pipe>> mPipes;
     std::mutex mPipesLock;
