@@ -5,52 +5,10 @@
 #include <deque>
 #include <mutex>
 
-#include <BFC/MemoryPool.hpp>
+#include <dsp/IOPort.hpp>
+#include <dsp/TimedSignal.hpp>
 
-class Pipe
-{
-public:
-    void write(bfc::Buffer pData)
-    {
-        std::unique_lock<std::mutex> lg(mDatasLock);
-        while (mBufferMax < mDatas.size())
-        {
-            mDatas.pop_front();
-        }
-        mDatas.emplace_back(std::move(pData));
-    }
-
-    bfc::Buffer read()
-    {
-        std::unique_lock<std::mutex> lg(mDatasLock);
-        bfc::Buffer rv;
-        if (mDatas.size())
-        {
-            rv = std::move(mDatas.front());
-            mDatas.pop_front();
-            return rv;
-        }
-        return rv;
-    }
-
-    void setBufferMax(uint32_t pBufferMax)
-    {
-        std::unique_lock<std::mutex> lg(mDatasLock);
-        mBufferMax = pBufferMax;
-    }
-
-    bfc::Buffer allocate(std::size_t pSize)
-    {
-        return mMemPool.allocate(pSize);
-    }
-
-private:
-    uint32_t mBufferMax=0;
-    std::mutex mDatasLock;
-    bfc::Log2MemoryPool mMemPool;
-    std::deque<bfc::Buffer> mDatas;
-};
-
+using Pipe = dsp::IOPort<dsp::TimedRealSignal>;
 class PipeManager
 {
 public:

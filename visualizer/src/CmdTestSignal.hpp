@@ -24,7 +24,6 @@ public:
         , mGenThreadRunning(false)
         , mGenThread([this](){run();})
     {
-        mPipe.setBufferMax(4);
     }
 
     TestSignal(const TestSignal&) = delete;
@@ -48,8 +47,7 @@ private:
         mGenThreadRunning = true;
         while (mGenThreadRunning)
         {
-            auto buffer = mPipe.allocate(dsp::TimedRealSignal::allocationSize(mBlockSize));
-            dsp::TimedRealSignal signal(buffer.data(), dsp::TimedRealSignal::allocationSize((mBlockSize)));
+            dsp::TimedRealSignal signal(0, mPipe.allocate<typename dsp::TimedRealSignal::value_type>(mBlockSize));
             signal.time() = time()/double(1000*1000);
             const auto baseTime = signal.time();
 
@@ -58,7 +56,7 @@ private:
                 double t = baseTime + double(i)/mSampleRate;
                 signal.emplace_back(std::sin(2*pi*mFrequency*t+mPhase));
             }
-            mPipe.write(std::move(buffer));
+            mPipe.send(std::move(signal));
             std::this_thread::sleep_for(std::chrono::microseconds((1000*1000*mBlockSize)/mSampleRate));
         }
     }
