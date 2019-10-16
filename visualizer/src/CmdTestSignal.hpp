@@ -6,8 +6,9 @@
 #include <memory>
 #include <cmath>
 
+#include <bfc/CommandManager.hpp>
+
 #include <dsp/TimedSignal.hpp>
-#include <BFC/CommandManager.hpp>
 #include <PipeManager.hpp>
 #include <TaskManager.hpp>
 #include <WindowPlotTime.hpp>
@@ -47,7 +48,7 @@ private:
         mGenThreadRunning = true;
         while (mGenThreadRunning)
         {
-            dsp::TimedRealSignal signal(0, mPipe.allocate<typename dsp::TimedRealSignal::value_type>(mBlockSize));
+            dsp::TimedRealSignal signal(0, mPipe.allocate(mBlockSize*2), mBlockSize);
             signal.time() = time()/double(1000*1000);
             const auto baseTime = signal.time();
 

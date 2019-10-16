@@ -6,7 +6,8 @@
 
 #include <GLFW/glfw3.h>
 
-#include <BFC/CommandManager.hpp>
+#include <bfc/CommandManager.hpp>
+
 #include <PipeManager.hpp>
 #include <TaskManager.hpp>
 #include <WindowPlotTime.hpp>

@@ -15,10 +15,15 @@ public:
 
     using value_type = T;
 
-    TimedSignal(double pTime, bfc::Buffer&& pBuffer)
+    TimedSignal(double pTime, bfc::Buffer&& pBuffer, std::size_t pHeadRoomSize=0)
         : mTime(pTime)
+        , mHeadRoomSize(pHeadRoomSize)
         , mBuffer(std::move(pBuffer))
     {
+        if (mBuffer.size()%sizeof(T))
+        {
+            throw std::runtime_error("Buffer size not aligned!");
+        }
     }
 
     TimedSignal(const TimedSignal&) = delete;
@@ -30,12 +35,32 @@ public:
 
     T* data()
     {
-        return (T*)mBuffer.data();
+        return (T*)mBuffer.data()+mHeadRoomSize;
     }
 
     const T* data() const
     {
-        return (T*)mBuffer.data();
+        return (T*)mBuffer.data()+mHeadRoomSize;
+    }
+
+    T* begin()
+    {
+        return data();
+    }
+
+    T* end()
+    {
+        return data()+size();
+    }
+
+    const T* begin() const
+    {
+        return data();
+    }
+
+    const T* end() const
+    {
+        return data()+size();
     }
 
     template <typename U>
@@ -59,14 +84,25 @@ public:
         return mSize;
     }
 
+    size_t& headRoomSize()
+    {
+        return mHeadRoomSize;
+    }
+
+    const size_t& headRoomSize() const
+    {
+        return mHeadRoomSize;
+    }
+
     size_t maxSize() const
     {
-        return mBuffer.size()/sizeof(T);
+        return ((mBuffer.data()+mBuffer.size())-(std::byte*)data())/sizeof(T);
     }
 
 private:
     double mTime = 0;
     std::size_t mSize = 0;
+    std::size_t mHeadRoomSize = 0;
     bfc::Buffer mBuffer = nullptr;
 };
 

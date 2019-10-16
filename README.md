@@ -4,16 +4,17 @@ DSP Framework for C++
 
 ## Visualizer
 
-- [ ] Command Line Interface
+- [x] Command Line Interface
 - [ ] Command Receive
-- [ ] Command Window
-- [ ] Command PlotTime
-- [ ] Command SetParam
+- [ ] Command PlotTime - Requires:
+  - [ ] Convolution Operator
+  - [ ] FIR Low Pass Generator
+  - [ ] Downsampler
 - [ ] Command PlotConstellation
+- [x] Command TestSignal
 
 ## Framework
 
-- [ ] IOPort
-- [ ] BufferPool
+- [x] IOPort - Partial support
+- [x] MemoryPool
 - [ ] ThreadPool
-- [ ] BasicBlocks

@@ -1,8 +1,8 @@
 #ifndef __IOPORT_HPP__
 #define __IOPORT_HPP__
 
-#include <BFC/FixedFunctionObject.hpp>
-#include <BFC/MemoryPool.hpp>
+#include <bfc/FixedFunctionObject.hpp>
+#include <bfc/MemoryPool.hpp>
 
 namespace dsp
 {
@@ -66,10 +66,9 @@ public:
         return Status::OK;
     }
 
-    template<typename U>
     bfc::Buffer allocate(std::size_t pSize)
     {
-        return mMemoryPool.allocate(pSize*sizeof(U));
+        return mMemoryPool.allocate(pSize*sizeof(T));
     }
 
 private:
@@ -78,7 +77,7 @@ private:
     uint32_t mIdGen = 0;
     std::vector<std::pair<std::uint32_t, Callback*>> mOnSendCallbacks;
     std::vector<std::pair<std::uint32_t, Callback*>> mOnRecvCallbacks;
-    bfc::Log2MemoryPool mMemoryPool;
+    bfc::Log2MemoryPool<alignof(T)> mMemoryPool;
 };
 
 } // dsp

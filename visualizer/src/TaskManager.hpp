@@ -6,7 +6,7 @@
 #include <mutex>
 #include <atomic>
 
-#include <BFC/FixedFunctionObject.hpp>
+#include <bfc/FixedFunctionObject.hpp>
 
 template <typename TaskFn>
 class TaskManager

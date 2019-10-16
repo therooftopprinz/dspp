@@ -6,8 +6,9 @@
 #include <mutex>
 #include <atomic>
 
-#include <BFC/CommandManager.hpp>
-#include <BFC/FixedFunctionObject.hpp>
+#include <bfc/CommandManager.hpp>
+#include <bfc/FixedFunctionObject.hpp>
+
 #include <PipeManager.hpp>
 #include <TaskManager.hpp>
 #include <CmdPlotTime.hpp>
