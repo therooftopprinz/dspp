@@ -5,6 +5,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <logless/Logger.hpp>
+
 #include <App.hpp>
 
 App::App()
@@ -13,6 +15,7 @@ App::App()
 {
     if (!glfwInit())
     {
+        Logless("glfwInit failed!");
         throw std::runtime_error("glfwInit failed!");
     }
 

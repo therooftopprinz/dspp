@@ -100,7 +100,7 @@ gtest.add_src_files(['gmock-gtest-all.cc'])
 gtest.add_include_paths(['gtest'])
 gtest.target_archive('gtest.a')
 
-COMMON_TARGET_INLCUDES = ['src/', 'BFC/include', 'BFC/src', 'dsp/include']
+COMMON_TARGET_INLCUDES = ['src/', 'BFC/include', 'BFC/src', 'dsp/include', 'Logless/include']
 
 src = Build()
 src.set_cxxflags(CXXFLAGS)
@@ -115,7 +115,7 @@ test.add_include_paths(combine_list(COMMON_TARGET_INLCUDES,['gtest/', 'test/']))
 test.set_src_dir('test/')
 test.add_src_files(TEST_SOURCES)
 test.add_dependencies(['gtest.a', 'src.a'])
-# test.add_external_dependencies(['Logless/build/logless.a'])
+test.add_external_dependencies(['Logless/build/logless.a'])
 test.set_linkflags("-lpthread")
 test.target_executable('test')
 
@@ -125,7 +125,7 @@ visualizer.add_include_paths(COMMON_TARGET_INLCUDES)
 visualizer.set_src_dir('src/')
 visualizer.add_src_files(["main.cpp"])
 visualizer.add_dependencies(['src.a'])
-# visualizer.add_external_dependencies(['Logless/build/logless.a',])
+visualizer.add_external_dependencies(['Logless/build/logless.a',])
 visualizer.set_linkflags("-lpthread -lglfw -lGL")
 visualizer.target_executable('visualizer')
 

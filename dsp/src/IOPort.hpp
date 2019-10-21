@@ -11,6 +11,7 @@ template <typename T>
 class IOPort
 {
 public:
+    using value_type = T;
     enum class Status {OK, NOK, SOME_OK};
     struct Callback
     {
@@ -23,12 +24,12 @@ public:
         std::unique_lock<std::mutex> lg(mOnSendCallbacksMutex);
         if (1==mOnSendCallbacks.size())
         {
-            return mOnSendCallbacks[0].second->onMove(std::move(pData));
+            return mOnSendCallbacks[0].second.onMove(std::move(pData));
         }
         std::uint32_t okCount = 0;
         for (auto& i : mOnSendCallbacks)
         {
-            if (Status::OK == i.second->onCopy(pData))
+            if (Status::OK == i.second.onCopy(pData))
             {
                 okCount++;
             }
@@ -44,25 +45,28 @@ public:
         return Status::NOK;
     }
 
-    Status recv(T&& pData)
+    Status recv(const T& pData)
     {
-        std::unique_lock<std::mutex> lg(mOnSendCallbacksMutex);
-        return std::move(pData);
+        return mOnRecvCallback.second->onCopy(std::move(pData));
     }
 
-    Status registerOnSendCallBack(std::uint32_t& pId, Callback* pCallback)
+    Status recv(T&& pData)
+    {
+        return mOnRecvCallback.second->onMove(std::move(pData));
+    }
+
+    Status registerOnSendCallBack(std::uint32_t& pId, Callback pCallback)
     {
         std::unique_lock<std::mutex> lg(mOnSendCallbacksMutex);
-        mOnSendCallbacks.emplace_back(mIdGen, pCallback);
+        mOnSendCallbacks.emplace_back(mIdGen, std::move(pCallback));
         pId = mIdGen++;
         return Status::OK;
     }
 
-    Status registerOnReceiveCallBack(std::uint32_t& pId, Callback* pCallback)
+    Status registerOnReceiveCallBack(Callback pCallback)
     {
-        std::unique_lock<std::mutex> lg(mOnRecvCallbacksMutex);
-        mOnRecvCallbacks.emplace_back(mIdGen, pCallback);
-        pId = mIdGen++;
+        std::unique_lock<std::mutex> lg(mOnRecvCallbackMutex);
+        mOnRecvCallback = std::move(pCallback);
         return Status::OK;
     }
 
@@ -73,10 +77,10 @@ public:
 
 private:
     std::mutex mOnSendCallbacksMutex;
-    std::mutex mOnRecvCallbacksMutex;
+    std::mutex mOnRecvCallbackMutex;
     uint32_t mIdGen = 0;
-    std::vector<std::pair<std::uint32_t, Callback*>> mOnSendCallbacks;
-    std::vector<std::pair<std::uint32_t, Callback*>> mOnRecvCallbacks;
+    std::vector<std::pair<std::uint32_t, Callback>> mOnSendCallbacks;
+    Callback mOnRecvCallback;
     bfc::Log2MemoryPool<alignof(T)> mMemoryPool;
 };
 

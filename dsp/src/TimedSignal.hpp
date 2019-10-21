@@ -15,6 +15,8 @@ public:
 
     using value_type = T;
 
+    TimedSignal() = default;
+
     TimedSignal(double pTime, bfc::Buffer&& pBuffer, std::size_t pHeadRoomSize=0)
         : mTime(pTime)
         , mHeadRoomSize(pHeadRoomSize)
@@ -27,10 +29,23 @@ public:
     }
 
     TimedSignal(const TimedSignal&) = delete;
+
     TimedSignal(TimedSignal&& pOther)
         : mTime(pOther.mTime)
         , mSize(pOther.mSize)
+        , mHeadRoomSize(pOther.mHeadRoomSize)
+        , mBuffer(std::move(pOther.mBuffer))
     {
+    }
+
+    TimedSignal& operator=(const TimedSignal&) = delete;
+    TimedSignal& operator=(TimedSignal&& pOther)
+    {
+        mTime = pOther.mTime;
+        mSize = pOther.mSize;
+        mHeadRoomSize = pOther.mHeadRoomSize;
+        mBuffer = std::move(pOther.mBuffer);
+        return *this;
     }
 
     T* data()
@@ -69,45 +84,68 @@ public:
         return new (mBuffer.data()+sizeof(T)*mSize++) T(std::forward<U>(pE));
     }
 
-    double& time()
+    uint64_t& time()
     {
         return mTime;
     }
 
-    const double& time() const
+    const uint64_t& time() const
     {
         return mTime;
     }
 
-    size_t size() const
+    std::size_t size() const
     {
         return mSize;
     }
 
-    size_t& headRoomSize()
+    void resize(std::size_t pSize)
+    {
+        mSize = pSize;
+    }
+
+    std::size_t& headRoomSize()
     {
         return mHeadRoomSize;
     }
 
-    const size_t& headRoomSize() const
+    const std::size_t& headRoomSize() const
     {
         return mHeadRoomSize;
     }
 
-    size_t maxSize() const
+    std::size_t maxSize() const
     {
         return ((mBuffer.data()+mBuffer.size())-(std::byte*)data())/sizeof(T);
     }
 
+    operator bool()
+    {
+        return nullptr != mBuffer.data();
+    }
+
 private:
-    double mTime = 0;
+    uint64_t mTime = 0;
     std::size_t mSize = 0;
     std::size_t mHeadRoomSize = 0;
-    bfc::Buffer mBuffer = nullptr;
+    bfc::Buffer mBuffer;
 };
 
 using TimedRealSignal = TimedSignal<double>;
 using TimedComplexSignal = TimedSignal<std::complex<double>>;
+
+template <typename T>
+struct TimedLessCmp
+{
+    bool operator()(const T& a, uint64_t b)
+    {
+        return a.time() < b;
+    }
+    bool operator()(uint64_t a, const T& b)
+    {
+        return a < b.time();
+    }
+};
 
 } // namespace dsp
 

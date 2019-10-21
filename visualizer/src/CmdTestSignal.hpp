@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include <bfc/CommandManager.hpp>
+#include <logless/Logger.hpp>
 
 #include <dsp/TimedSignal.hpp>
 #include <PipeManager.hpp>
@@ -40,7 +41,7 @@ private:
     uint64_t time()
     {
         auto now = std::chrono::high_resolution_clock::now();
-        return std::chrono::duration_cast<std::chrono::microseconds>(now-mTimeBase).count();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(now-mTimeBase).count();
     }
 
     void run()
@@ -49,12 +50,12 @@ private:
         while (mGenThreadRunning)
         {
             dsp::TimedRealSignal signal(0, mPipe.allocate(mBlockSize*2), mBlockSize);
-            signal.time() = time()/double(1000*1000);
+            signal.time() = time();
             const auto baseTime = signal.time();
 
             for (size_t i=0; i<mBlockSize; i++)
             {
-                double t = baseTime + double(i)/mSampleRate;
+                double t = double(baseTime)/(1000*1000*1000) + double(i)/mSampleRate;
                 signal.emplace_back(std::sin(2*pi*mFrequency*t+mPhase));
             }
             mPipe.send(std::move(signal));
@@ -83,6 +84,8 @@ public:
     std::string execute(bfc::ArgsMap&& pArgs)
     {
         using namespace std::string_literals;
+        
+        LoglessTrace trace{"CmdTestSignal::execute"};
 
         auto id = pArgs.argAs<int>("id");
         auto blockSize = pArgs.argAs<uint32_t>("block_size");
@@ -90,15 +93,22 @@ public:
         auto frequency = pArgs.argAs<double>("frequency");
         auto phase = pArgs.argAs<double>("phase");
 
-        if (id) // update
+        TestSignal* ts = nullptr;
+
+        if (id)
         {
+            Logless("id=", *id);
             auto foundIt = mSignals.find(*id);
-            if (mSignals.end()==foundIt)
+            if (mSignals.end()!=foundIt)
             {
-                return "Test signal with id="s + std::to_string(*id) + "is not found!";
+                ts = foundIt->second.get();
             }
-            return "Test signal updated!";
         }
+        else
+        {
+            return "id not specified!";
+        }
+        
 
         if (!blockSize)
         {
@@ -120,17 +130,23 @@ public:
             phase = 0;
         }
 
-        uint32_t pipeId = mPipeMan.createPipe();
-        Pipe& pipe = *mPipeMan.getPipe(pipeId);
+        Logless("blockSize=_ sampleRate=_ frequency=_ phase=_", *id, *sampleRate, *frequency, *phase);
 
-        uint32_t tsigId = mIdGen++;
-        mSignals.emplace(tsigId, std::make_unique<TestSignal>(pipe, *blockSize, *sampleRate, *frequency, *phase));
-        return "Test signal created id=" + std::to_string(tsigId) +" pipe_out="s+std::to_string(pipeId);
+        if (ts)
+        {
+            return "currently cant be updated";
+        }
+        else
+        {
+            uint32_t pipeId = mPipeMan.createPipe();
+            Pipe& pipe = *mPipeMan.getPipe(pipeId);
+            mSignals.emplace(*id, std::make_unique<TestSignal>(pipe, *blockSize, *sampleRate, *frequency, *phase));
+            return "Test signal created pipe_out="s+std::to_string(pipeId);
+        }
     }
 
 private:
     PipeManager& mPipeMan;
     std::map<uint32_t, std::unique_ptr<TestSignal>> mSignals;
-    uint32_t mIdGen = 0;
 };
 #endif // __CMDTESTSIGNAL_HPP__

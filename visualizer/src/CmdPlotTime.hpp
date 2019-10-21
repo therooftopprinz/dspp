@@ -22,7 +22,6 @@ private:
     TaskManager<bfc::LightFunctionObject<void()>>& mTaskMan;
     PipeManager& mPipeMan;
     std::map<uint32_t, std::unique_ptr<WindowPlotTime>> mWindows;
-    uint32_t mIdGen = 0;
 };
 
 #endif // __CMDPLOTTIME_HPP__
