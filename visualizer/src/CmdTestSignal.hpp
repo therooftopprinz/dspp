@@ -56,8 +56,13 @@ private:
             for (size_t i=0; i<mBlockSize; i++)
             {
                 double t = double(baseTime)/(1000*1000*1000) + double(i)/mSampleRate;
-                signal.emplace_back(std::sin(2*pi*mFrequency*t+mPhase));
+                double sample = std::sin(2*pi*mFrequency*t+mPhase);
+                // TODO: FIX
+                // signal.emplace_back(sample);
+                *(signal.data()+i) = sample;
+                // Logless("sample[_] = sin(2*pi*_*_+_) = _", i, mFrequency, t, mPhase, *(signal.data()+i));
             }
+            signal.resize(mBlockSize);
             mPipe.send(std::move(signal));
             std::this_thread::sleep_for(std::chrono::microseconds((1000*1000*mBlockSize)/mSampleRate));
         }

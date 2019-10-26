@@ -5,6 +5,8 @@
 #include <cmath>
 #include <complex>
 
+#include <logless/Logger.hpp>
+
 namespace dsp
 {
 
@@ -123,7 +125,6 @@ public:
     {
         return nullptr != mBuffer.data();
     }
-
 private:
     uint64_t mTime = 0;
     std::size_t mSize = 0;

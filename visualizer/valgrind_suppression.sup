@@ -13,6 +13,14 @@
 }
 
 {
+   glfwCreateWindow_memmove_1
+   Memcheck:Addr1
+   fun:memmove
+   obj:/usr/lib/x86_64-linux-gnu/dri/i965_dri.so
+   ...
+}
+
+{
    glfwCreateWindow_memmove_2
    Memcheck:Addr2
    fun:memmove
