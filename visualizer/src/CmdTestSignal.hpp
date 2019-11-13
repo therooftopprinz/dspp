@@ -31,6 +31,17 @@ public:
     TestSignal(const TestSignal&) = delete;
     TestSignal(TestSignal&&) = default;
 
+    std::string execute(bfc::ArgsMap&& pArgs)
+    {
+        LoglessTrace trace("TestSignal::execute");
+        auto frequency = pArgs.argAs<int>("frequency");
+        if (frequency)
+        {
+            mFrequency = *frequency;
+        }
+        return "";
+    }
+
     ~TestSignal()
     {
         mGenThreadRunning = false;
@@ -40,8 +51,8 @@ public:
 private:
     uint64_t time()
     {
-        auto now = std::chrono::high_resolution_clock::now();
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(now-mTimeBase).count();
+        auto now = std::chrono::high_resolution_clock::now().time_since_epoch();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
     }
 
     void run()
@@ -76,7 +87,6 @@ private:
     constexpr static double pi =  3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170;
     std::atomic_bool mGenThreadRunning;
     std::thread mGenThread;
-    decltype(std::chrono::high_resolution_clock::now()) mTimeBase = std::chrono::high_resolution_clock::now();
 };
 
 class CmdTestSignal
@@ -92,11 +102,11 @@ public:
         
         LoglessTrace trace{"CmdTestSignal::execute"};
 
-        auto id = pArgs.argAs<int>("id");
-        auto blockSize = pArgs.argAs<uint32_t>("block_size");
+        auto id         = pArgs.argAs<int>("id");
+        auto blockSize  = pArgs.argAs<uint32_t>("block_size");
         auto sampleRate = pArgs.argAs<uint32_t>("sample_rate");
-        auto frequency = pArgs.argAs<double>("frequency");
-        auto phase = pArgs.argAs<double>("phase");
+        auto frequency  = pArgs.argAs<double>("frequency");
+        auto phase      = pArgs.argAs<double>("phase");
 
         TestSignal* ts = nullptr;
 
@@ -113,7 +123,6 @@ public:
         {
             return "id not specified!";
         }
-        
 
         if (!blockSize)
         {
@@ -139,7 +148,7 @@ public:
 
         if (ts)
         {
-            return "currently cant be updated";
+            return ts->execute(std::move(pArgs));
         }
         else
         {

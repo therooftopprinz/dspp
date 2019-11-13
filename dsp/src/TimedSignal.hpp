@@ -19,7 +19,7 @@ public:
 
     TimedSignal() = default;
 
-    TimedSignal(double pTime, bfc::Buffer&& pBuffer, std::size_t pHeadRoomSize=0)
+    TimedSignal(uint64_t pTime, bfc::Buffer&& pBuffer, std::size_t pHeadRoomSize=0)
         : mTime(pTime)
         , mHeadRoomSize(pHeadRoomSize)
         , mBuffer(std::move(pBuffer))

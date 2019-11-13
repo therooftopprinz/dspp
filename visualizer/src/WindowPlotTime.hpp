@@ -19,8 +19,10 @@ public:
         , mDownsamplingRatio(pDownsamplingRatio)
         , mPipeIn(pPipeIn)
     {
-        mPipeIn.registerOnSendCallBack(mPipeInCallbackId, Pipe::Callback{nullptr,
-            [this](dsp::TimedRealSignal&& pSignal){return onReceive(std::move(pSignal));}});
+        mPipeIn.registerOnSendCallBack(mPipeInCallbackId, Pipe::SendCallback{nullptr,
+            [this](dsp::TimedRealSignal&& pSignal) {
+                onReceive(std::move(pSignal));
+            }});
     }
 
     ~WindowPlotTimeChannel()
@@ -28,9 +30,14 @@ public:
         // mPipeIn.deregisterOnSendCallBack(mPipeInCallbackId);
     }
 
-    std::string execute(bfc::ArgsMap&&)
+    std::string execute(bfc::ArgsMap&& pArgs)
     {
         LoglessTrace trace("WindowPlotTimeChannel::execute");
+        auto sampleRatio = pArgs.argAs<int>("sample_ratio");
+        if (sampleRatio)
+        {
+            mDownsamplingRatio = *sampleRatio;
+        }
         return "";
     }
 
@@ -104,11 +111,6 @@ public:
             forwardDstIndex += count;
         }
 
-        // for (std::size_t i=forwardDstIndex; i<pDstBuffer.size();i++)
-        // {
-        //     pDstBuffer[i]=i%2; // no data is at nyquist
-        // }
-
         // backward copy
         scanIt = foundIt;
         ssize_t backwardSrcIndex = estimatedSrcIndex;
@@ -180,15 +182,9 @@ public:
     }
 
 private:
-    Pipe::Status onReceive(dsp::TimedRealSignal&& pSignal)
+    void onReceive(dsp::TimedRealSignal&& pSignal)
     {
         LoglessTrace trace("WindowPlotTimeChannel::onReceive");
-
-        if (mCallback)
-        {
-            mCallback(pSignal);
-        }
-        
 
         Logless("receive t=_ size=_", pSignal.time(), pSignal.size());
         for (size_t i = 0; i<pSignal.size(); i++)
@@ -201,6 +197,23 @@ private:
         SampleType* from;
         SampleType* to;
         std::size_t fromSize  = pSignal.size();
+        uint32_t fromSignalIndex = 0;
+
+        if (mDownsamplingSampleSkip)
+        {
+            if (mDownsamplingSampleSkip >= pSignal.size())
+            {
+                mDownsamplingSampleSkip -= pSignal.size();
+                return Pipe::Status::OK;
+            }
+
+            fromSignalIndex = mDownsamplingRatio;
+            mDownsamplingSampleSkip = mDownsamplingRatio;
+        }
+        else
+        {
+            mDownsamplingSampleSkip = mDownsamplingRatio;
+        }
 
         from = pSignal.data();
 
@@ -216,7 +229,6 @@ private:
 
         to = mCurrentSignal.data();
 
-        uint32_t fromSignalIndex = 0;
         while (true)
         {
             if (mCurrentSignalIndex==mCurrentSignal.maxSize())
@@ -231,6 +243,11 @@ private:
                     for (size_t i = 0; i<mCurrentSignal.size(); i++)
                     {
                         Logless("emplace signal[_]@_=_", i, mCurrentSignal.data()+i, *(mCurrentSignal.data()+i));
+                    }
+
+                    if (mCallback)
+                    {
+                        mCallback(mCurrentSignal);
                     }
 
                     mPlotBuffer.emplace_back(std::move(mCurrentSignal));
@@ -264,12 +281,11 @@ private:
             fromSignalIndex += mDownsamplingRatio;
             mCurrentSignalIndex++;
         }
-
-        return Pipe::Status::OK;
     }
 
     uint32_t mSampleRate;
     uint32_t mDownsamplingRatio;
+    uint32_t mDownsamplingSampleSkip = 0;
     Pipe& mPipeIn;
     uint32_t mPipeInCallbackId;
     std::mutex mPlotBufferMutex;
@@ -325,24 +341,26 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glPointSize(10);
         glLineWidth(1); 
-        for (auto& i : mPlotChannel)
         {
-            glBegin(GL_LINES);
+            std::unique_lock<std::mutex> lg(mPlotChannelMutex);
+            for (auto& i : mPlotChannel)
             {
-                i.second->getCurrentWindowSamples(mDisplayBuffer, mTriggerTime);
-                Logless("schedule plot: t=_", mTriggerTime);
-                for (std::size_t i=0; i<mDisplayBuffer.size()-1; i++)
+                glBegin(GL_LINES);
                 {
-                    double x0 = 2*(0.5-double(i)/mDisplayBuffer.size());
-                    double x1 = 2*(0.5-double(i+1)/mDisplayBuffer.size());
-                    glColor3f(double(i)/mDisplayBuffer.size(), double(1-i)/mDisplayBuffer.size(), 0.0);
-                    glVertex2f(x0, mDisplayBuffer[i]*0.5);
-                    glVertex2f(x1, mDisplayBuffer[i+1]*0.5);
+                    i.second->getCurrentWindowSamples(mDisplayBuffer, mTriggerTime);
+                    Logless("schedule plot: t=_", mTriggerTime);
+                    for (std::size_t i=0; i<mDisplayBuffer.size()-1; i++)
+                    {
+                        double x0 = 2*(0.5-double(i)/mDisplayBuffer.size());
+                        double x1 = 2*(0.5-double(i+1)/mDisplayBuffer.size());
+                        glColor3f(double(i)/mDisplayBuffer.size(), double(1-i)/mDisplayBuffer.size(), 0.0);
+                        glVertex2f(x0, mDisplayBuffer[i]*0.5);
+                        glVertex2f(x1, mDisplayBuffer[i+1]*0.5);
+                    }
                 }
+                glEnd();
             }
-            glEnd();
         }
-
 
         glfwSwapBuffers(mWindow);
     }
@@ -400,6 +418,7 @@ public:
         WindowPlotTimeChannel* plotchannelptr = plotchannel.get();
         plotchannelptr->registerOnSignalCallback([this](const dsp::TimedRealSignal& pSig)
             {mTriggerTime = pSig.time()-1000*1000*100;});
+        std::unique_lock<std::mutex> lg(mPlotChannelMutex);
         mPlotChannel.emplace_back(*channel, std::move(plotchannel));
         return plotchannelptr->execute(std::move(pArgs));
     }

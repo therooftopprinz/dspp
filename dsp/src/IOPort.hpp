@@ -7,69 +7,80 @@
 namespace dsp
 {
 
+/**
+ * @brief Provides communication point between processing blocks
+ * @tparam T Fundametal type for sending and receiving.
+ */
 template <typename T>
 class IOPort
 {
 public:
     using value_type = T;
-    enum class Status {OK, NOK, SOME_OK};
-    struct Callback
-    {
-        bfc::LightFunctionObject<Status(const T&)> onCopy;
-        bfc::LightFunctionObject<Status(T&&)> onMove;
-    };
 
-    Status send(T&& pData)
+    using Copier = bfc::LightFunctionObject<void(const T&)>;
+    using Receiver = bfc::LightFunctionObject<void(T&)>;
+    using Mover = bfc::LightFunctionObject<void(T&&)>;
+    struct SendCallback
     {
-        std::unique_lock<std::mutex> lg(mOnSendCallbacksMutex);
-        if (1==mOnSendCallbacks.size())
-        {
-            return mOnSendCallbacks[0].second.onMove(std::move(pData));
-        }
-        std::uint32_t okCount = 0;
+        Mover onCopy;
+        Mover onMove;
+    };
+    /**
+     * Send data via move to the first send listener of the port.
+     * The producer block invokes this function when operating in producer driven mode.
+     * The callback can be blocking or non blocking.
+     */
+    void send(T&& pData) 
+    {
+        mOnSendCallbacks[0].second.onMove(std::move(pData));
+    }
+
+    /**
+     * Send data via copy to the all the send listener of the port.
+     * The producer block invokes this function.
+     * The callback can be blocking or non blocking.
+     */
+    void sendToAll(T&& pData)
+    {
         for (auto& i : mOnSendCallbacks)
         {
-            if (Status::OK == i.second.onCopy(pData))
-            {
-                okCount++;
-            }
+            i.second.onCopy(pData);
         }
-        if (okCount == mOnSendCallbacks.size())
-        {
-            return Status::OK;
-        }
-        if (okCount)
-        {
-            return Status::SOME_OK;
-        }
-        return Status::NOK;
     }
 
-    Status recv(const T& pData)
+    /**
+     * Receive data from tge receive listener of the port.
+     * The consumer block invokes this function.
+     * The callback can be blocking or non blocking
+     */
+    void recv(T& pData)
     {
-        return mOnRecvCallback.second->onCopy(std::move(pData));
+        mOnRecvCallback(pData));
     }
 
-    Status recv(T&& pData)
+    /**
+     * Register send callback for the port.
+     * Can register multiple send callbacks for multi consumer mode.
+     * This must be invoked before or after send and sendToAll, concurrency should be handled by the block code.
+     */
+    void registerOnSendCallBack(std::uint32_t& pId, SendCallback pCallback)
     {
-        return mOnRecvCallback.second->onMove(std::move(pData));
-    }
-
-    Status registerOnSendCallBack(std::uint32_t& pId, Callback pCallback)
-    {
-        std::unique_lock<std::mutex> lg(mOnSendCallbacksMutex);
         mOnSendCallbacks.emplace_back(mIdGen, std::move(pCallback));
         pId = mIdGen++;
-        return Status::OK;
     }
 
-    Status registerOnReceiveCallBack(Callback pCallback)
+    /**
+     * Register receive callback for the port.
+     */
+    void registerOnReceiveCallBack(Receiver pCallback)
     {
-        std::unique_lock<std::mutex> lg(mOnRecvCallbackMutex);
         mOnRecvCallback = std::move(pCallback);
-        return Status::OK;
     }
 
+    /**
+     * Allocate a Buffer from pool, the pool is managed by this port.
+     * The Buffer is automatically returned to the pool when destroyed.
+     */
     bfc::Buffer allocate(std::size_t pSize)
     {
         return mMemoryPool.allocate(pSize*sizeof(T));
@@ -77,10 +88,9 @@ public:
 
 private:
     std::mutex mOnSendCallbacksMutex;
-    std::mutex mOnRecvCallbackMutex;
     uint32_t mIdGen = 0;
-    std::vector<std::pair<std::uint32_t, Callback>> mOnSendCallbacks;
-    Callback mOnRecvCallback;
+    std::vector<std::pair<std::uint32_t, SendCallback>> mOnSendCallbacks;
+    Receiver mOnRecvCallback;
     bfc::Log2MemoryPool<alignof(T)> mMemoryPool;
 };
 
