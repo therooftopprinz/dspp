@@ -32,7 +32,10 @@ public:
      */
     void send(T&& pData) 
     {
-        mOnSendCallbacks[0].second.onMove(std::move(pData));
+        if (mOnSendCallbacks.size())
+        {
+            mOnSendCallbacks[0].second.onMove(std::move(pData));
+        }
     }
 
     /**
@@ -55,7 +58,7 @@ public:
      */
     void recv(T& pData)
     {
-        mOnRecvCallback(pData));
+        mOnRecvCallback(pData);
     }
 
     /**

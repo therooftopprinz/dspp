@@ -204,7 +204,6 @@ private:
             if (mDownsamplingSampleSkip >= pSignal.size())
             {
                 mDownsamplingSampleSkip -= pSignal.size();
-                return Pipe::Status::OK;
             }
 
             fromSignalIndex = mDownsamplingRatio;
